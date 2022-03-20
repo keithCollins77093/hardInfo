@@ -1,0 +1,8 @@
+{
+   "cpus": [
+      {"cpu": "0", "node": "0", "socket": "0", "core": "0", "l1d:l1i:l2:l3": "0:0:0:0", "online": "yes", "maxmhz": "2534.0000", "minmhz": "1199.0000"},
+      {"cpu": "1", "node": "0", "socket": "0", "core": "0", "l1d:l1i:l2:l3": "0:0:0:0", "online": "yes", "maxmhz": "2534.0000", "minmhz": "1199.0000"},
+      {"cpu": "2", "node": "0", "socket": "0", "core": "1", "l1d:l1i:l2:l3": "1:1:1:0", "online": "yes", "maxmhz": "2534.0000", "minmhz": "1199.0000"},
+      {"cpu": "3", "node": "0", "socket": "0", "core": "1", "l1d:l1i:l2:l3": "1:1:1:0", "online": "yes", "maxmhz": "2534.0000", "minmhz": "1199.0000"}
+   ]
+}
