@@ -35,19 +35,62 @@
 #               of attribute management code in each hardware class.  Malware might be able to access all of
 #               the subclass' individual attributes by cracking the base class only, otherwise.
 #
-
-from sys import stderr
+#   2022-03-20:
+#       man lshw:
+#       __________________________________________________________________________________________________________
+#        DESCRIPTION
+#        lshw is a small tool to extract detailed information on the hardware configuration of the machine.
+#        It can report exact memory  configuration,  firmware  version, mainboard configuration,
+#        CPU version and speed, cache configuration, bus speed, etc. on DMI-capable
+#        x86 or IA-64 systems and on some PowerPC machines (PowerMac G4 is known to work).
+#
+#        It currently supports DMI (x86 and IA-64 only), OpenFirmware device tree (PowerPC only),
+#        PCI/AGP, CPUID (x86), IDE/ATA/ATAPI,  PCM‐CIA (only tested on x86), SCSI and USB.
+#           ...
+#        -json  Outputs the device tree as a JSON object (JavaScript Object Notation).
+#           ...
+#        -dump filename
+#               Dump collected information into a file (SQLite database).
+#       __________________________________________________________________________________________________________
+#       I tested the -dump filename option and it failed showing the usage help output instead of doing what
+#       the man page claims.  Fortunately, Linux comes with no warranty, or someone would be in trouble.
+#       The 'organic' table layout would have a table for each class of hardware and therefore only one or a few
+#           records in each table.  There are 26 classes of hardware and generally only one instance of each.
+#           This is likely the reason this feature was discontinued, but there are more innovative database
+#           design architectures that would work well on this information.
+#       This does show that this feature was included at some point and perhaps still is in some Linux releases,
+#       so it would be a good idea to produce a platform independent version of it in Python.
+#
+#       Requirements:
+#           Redundancy through an encoded mirror.  If there is a record with exposed field names, there
+#               should be a pickled BLOB with the same information and no field names visible.
+#           Transparency through field / attribute / column naming standard identical to that in output.
+#           There should be a master table with only those fields which all classes have in common and the
+#               rest in a map / BLOB field.
+#           For simplicity, there could be a monster table with all possible fields in it allowing those
+#               classes without some to have blanks.
+#           There could also be a table listing the different classes and containing a list BLOB of the
+#               names of the attributes in each class.
+#
+from os.path import isfile
+from subprocess import Popen, PIPE, STDOUT
+from datetime import datetime
+from sys import stderr, stdout
 from collections import OrderedDict
 from copy import deepcopy           #   Security: prevent passed in argument from being changed from outside.
 from enum import Enum
+from json import loads
 
-from tkinter import Tk, messagebox
+from tkinter import Tk, messagebox, BOTH
+
+from model.Installation import INSTALLATION_FOLDER
+from view.Components import JsonTreeView
 
 
 PROGRAM_TITLE = "lshw classes module"
 
 
-class HardwareId:
+class HardwareId(Enum):
     Core            = 'core'
     Firmware        = 'firmware'
     CPU             = 'cpu'
@@ -175,8 +218,8 @@ class CPU_Capabilities( Capabilities ):
                     self.__dict__[name] = value
 
     def getAttribute(self, name):
-        if isinstance(name, str) and name in self.attributes:
-            return self.attributes[name]
+        if isinstance(name, str) and name in self:
+            return self[name]
         return None
 
     def integrityCheck(self):
@@ -715,8 +758,8 @@ class Display( System ):
 
         #   QUICK TEST:
         #   "description" : "VGA compatible controller"
-        if "description" in attributes:
-            print("Display description:\t" + attributes['description'], file=stderr)
+        #   if "description" in attributes:
+        #       print("Display description:\t" + attributes['description'], file=stderr)
 
         self.attributes = deepcopy(attributes)
         self.id = None
@@ -881,8 +924,8 @@ class USB( System ):
 
         #   QUICK TEXT:
         #   "product"
-        if "product" in attributes:
-            print("USB product:\t" + attributes["product"], file=stderr)
+        #   if "product" in attributes:
+        #       print("USB product:\t" + attributes["product"], file=stderr)
 
         self.attributes = deepcopy(attributes)
         self.id = None
@@ -1681,6 +1724,27 @@ class Battery( System ):
             print("\t" + key + ":\t" + str(value))
 
 
+class Dispatcher:
+
+    def __init__(self):
+        print("Lshw.Dispatcher does not instantiate")
+
+    @staticmethod
+    def generateJshwJsonFile():
+        print("Enter your password to run lshw as super user", end=":\t")
+        interface = input()
+        argument = "{input}\n"
+        bytestr = bytes(argument.format(input=interface).encode('utf-8'))
+        proc = Popen(['sudo', '-S', 'lshw', '-json'], stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate(input=bytestr)
+        jsonText = proc[0].decode('utf-8')
+        print("Saving output to:\t" + LSHW_JSON_FILE)
+        file = open(LSHW_JSON_FILE, "w")
+        file.write(jsonText)
+        file.close()
+        #   print("Line Count:\t" + str(len(outputText.split('\n'))))
+        return jsonText
+
+
 def ExitProgram():
     answer = messagebox.askyesno('Exit program ', "Exit the " + PROGRAM_TITLE + " program?")
     if answer:
@@ -1690,7 +1754,52 @@ def ExitProgram():
 if __name__ == '__main__':
     mainView = Tk()
     mainView.protocol('WM_DELETE_WINDOW', ExitProgram)
-    mainView.geometry("600x400+100+50")
+    mainView.geometry("800x500+100+50")
     mainView.title(PROGRAM_TITLE)
 
-    mainView.mainloop()
+    LSHW_JSON_FILE = 'lshw.json'
+    jsonText = None
+
+    if isfile(LSHW_JSON_FILE):
+        prompt = "lshw json storage file already exists.  Would you like to update it? (y/Y or n/N)"
+        print(prompt, end=":\t")
+        response = input()
+        if response in ('y','Y'):
+            jsonText = Dispatcher.generateJshwJsonFile()
+        else:
+            lshwJsonFile = open(LSHW_JSON_FILE, "r")
+            jsonText = lshwJsonFile.read()
+            lshwJsonFile.close()
+    else:
+        jsonText = Dispatcher.generateJshwJsonFile()
+
+    if jsonText is not None:
+
+        #   Construct the internal objects storing the output for API use.
+        propertyMap = loads(jsonText)
+        configuration = {}
+        if 'configuration' in propertyMap:
+            for name, value in propertyMap['configuration'].items():
+                if not (isinstance(value, list) or isinstance(value, tuple) or isinstance(value, dict)):
+                    configuration[name] = value
+        capabilities = {}
+        if 'capabilities' in propertyMap:
+            for name, value in propertyMap['capabilities'].items():
+                if not (isinstance(value, list) or isinstance(value, tuple) or isinstance(value, dict)):
+                    capabilities[name] = value
+        children = {}
+        if 'children' in propertyMap:
+            children = propertyMap['children']
+        computer = Computer(loads(jsonText), Configuration(configuration), Capabilities(capabilities),
+                            Children(children))
+        print("lshw API is available as \"computer\"")
+
+        prompt = "Would you line to see the lshw output in a GUI Tree window? (y/Y or n/N)"
+        print(prompt, end=":\t")
+        response = input()
+        if response in ('y', 'Y'):
+            print('Generating view')
+            lshwJson = loads(jsonText)
+            jsonTreeView    = JsonTreeView( mainView, lshwJson, {"openBranches": True, "mode": "strict"})
+            jsonTreeView.pack(expand=True, fill=BOTH)
+            mainView.mainloop()
