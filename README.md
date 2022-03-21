@@ -6,6 +6,10 @@ Writing Python programs to run on any operating system on any hardware is not po
 
 An interesting possible spin-off once all the hardware and other low level components are represented by objects is to implement the behavior of each as stated in their standaards using methods defined in their respective classes, and then to run the component system in real time in parallel with the actual computer hardware and software stack by receiving real-time event messages from it.  The system state can then be compared to the model state to detect any malfunctions or malware produced anomalies.
 
+Module Ownership:
+
+I think the best approach to developing software together is for each of us to take ownership of a module which addresses a high level development issue and to be responsible throughout development for that module or modules. Each of us can then code according to his or her own principles and only needs to understand the other programmers' enough to interface with the modules that theirs depend on or that depend on theirs. The only qualifier to actual ownership of the intellectual property rights in the module your responsible for is that your have agreed to allow it to be used in the application under development under whatever licensing scheme is settled on by the developers. My preference is a "freemium" model, where there is a free community edition and a paid for commercial or professional one or more building directly off of the free version.
+
 
 Architecture:
 
