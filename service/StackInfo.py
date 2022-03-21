@@ -40,10 +40,12 @@ from copy import deepcopy
 
 from bios_pnp import pnp
 
-#   from view.PlatformInfo import PlatformInfo
-from view.PropertySheet import PropertySheetTopLevel
+from tkinter import Tk, messagebox, BOTH, SUNKEN
 
-#print('StackInfo loading, probably in response to an import declaration')
+#   from view.PlatformInfo import PlatformInfo
+from view.PropertySheet import PropertySheet
+
+PROGRAM_TITLE = "Stack Info"
 
 
 class UNAME:
@@ -111,113 +113,11 @@ class UNAME:
         print("\thardware-platform:\t" + str(self.hardwarePlatform))
         print("\toperating-system:\t" + str(self.operatingSystem))
 
-
-class LSHW:
-    """
-    Hardware Lister (lshw) - B.02.18
-    usage: lshw [-format] [-options ...]
-           lshw -version
-
-            -version        print program version (B.02.18)
-
-    format can be
-            -html           output hardware tree as HTML
-            -xml            output hardware tree as XML
-            -json           output hardware tree as a JSON object
-            -short          output hardware paths
-            -businfo        output bus information
-
-    options can be
-            -class CLASS    only show a certain class of hardware
-            -C CLASS        same as '-class CLASS'
-            -c CLASS        same as '-class CLASS'
-            -disable TEST   disable a test (like pci, isapnp, cpuid, etc. )
-            -enable TEST    enable a test (like pci, isapnp, cpuid, etc. )
-            -quiet          don't display status
-            -sanitize       sanitize output (remove sensitive information like serial numbers, etc.)
-            -numeric        output numeric IDs (for PCI, USB, etc.)
-            -notime         exclude volatile attributes (timestamps) from output
-    """
-
-    def __init__(self, lshwOutput: dict):
-        if not isinstance(lshwOutput, dict):
-            raise Exception("LSHW constructor - Invalid lshwOutput argument:  " + str(lshwOutput))
-        self.propertyMap = deepcopy(lshwOutput)
-
-    def getPropertyMap(self):
-        return self.propertyMap
-
-    def list(self):
-        print("\nLSHW class properties:")
-        for name, value in self.propertyMap.items():
-            print("\t" + name + ':\t' + str(value))
-
-
-class Collector:
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def uname():
-        pass
-
-    @staticmethod
-    def lshw():
-        pass
-
-    @staticmethod
-    def lscpu():
-        pass
-
-    @staticmethod
-    def lsblk():
-        pass
-
-    @staticmethod
-    def lsusb():
-        pass
-
-    @staticmethod
-    def lspci():
-        pass
-
-    @staticmethod
-    def lsscsi():
-        """
-        To view all your scsi/sata devices, use the lsscsi command as follows. If you do not have the lsscsi
-        tool installed, run the following command to install it.
-            $ sudo apt-get install lsscsi        [on Debian derivatives]
-            # yum install lsscsi                 [On RedHat based systems]
-            # dnf install lsscsi                 [On Fedora 21+ Onwards]
-        """
-        pass
-
-    @staticmethod
-    def hdparm():
-        pass
-
-    @staticmethod
-    def fdisk():
-        pass
-
-    @staticmethod
-    def dmidecode():
-        pass
-
-    @staticmethod
-    def biosdecode():
-        pass
-
-    @staticmethod
-    def acpi():
-        pass
-
-
+"""
 def showPlatformInfo():
     #print("showPlatformInfo")
     platformInfo = PropertySheetTopLevel(None, "platformInfo", getPlatformInfo())
-
+"""
 
 def showOpSysInfo():
     print("showOpSysInfo")
@@ -226,7 +126,7 @@ def showOpSysInfo():
 def showDeviceInfo():
     print("showDeviceInfo")
 
-
+"""
 def showEnvironmentInfo():
     #print("showEnvironmentInfo")
     info = {}
@@ -244,7 +144,7 @@ def showEnvironmentInfo():
             }
     platformInfo = PropertySheetTopLevel(None, "platformInfo", (info, nameIndex), design)
     platformInfo.mainloop()
-
+"""
 
 def getPlatformInfo(indexed: bool=True):
     info        = {}
@@ -307,8 +207,65 @@ def getPlatformInfo(indexed: bool=True):
     return info
 
 
+def ExitProgram():
+    answer = messagebox.askyesno('Exit program ', "Exit the " + PROGRAM_TITLE + " program?")
+    if answer:
+        mainView.destroy()
+
 if __name__ == '__main__':
     deviceList = list(pnp.get_all_pnp_devices_from_sysfs())
+    print("\nAll PNP Devices:")
     for device in deviceList:
-        print(str(device))
+        print("\t" + str(device))
+
+    mainView = Tk()
+    mainView.geometry("700x500+100+50")
+    mainView.title(PROGRAM_TITLE)
+    mainView.layout = "grid"
+    mainView.protocol('WM_DELETE_WINDOW', lambda: ExitProgram())
+
+    info, nameIndex = getPlatformInfo(True)
+    nameIndex.sort()
+
+    design = {  'toplevel': {
+                    'config': { 'borderwidth': 5,'relief': 'raised'},
+                    'geometry': { 'width': 750, 'height': 500, 'x': 600, 'y': 50 }
+                },
+                'frame': {'text': 'Platform Properties', 'border': 3, 'relief': SUNKEN,
+                          'padx': 10, 'pady': 10
+                },
+                'components': {
+                    'input': {
+                        'fieldName': { 'type': 'input component type',
+                                       'config': 'input component configuration',
+                                       'default': 'default value',
+                                       'validValues': ('one', 'two', '...'),
+                                       'validator': "a validator method"
+                                       },
+                        'another fieldName': {
+                                        'type': 'input component type',
+                                       'config': 'input component configuration',
+                                       'default': 'default value',
+                                       'validValues': ('one', 'two', '...'),
+                                       'validator': "a validator method"
+
+                                    }
+                    }
+                }
+            }
+
+    def messageReceiver(message: dict):
+        print("Global message receiver:\t" + str(message))
+        if 'source' in message:
+            if message['source'] == 'PropertySheet.mouseClicked':
+                pass
+            if message['source'] == "PropertySheet.mouseDoubleClicked":
+                pass
+
+    #   popupPanel = PopupPanel(mainView, "Popup Panel",
+    #                           geometryDef=PropertySheet.DEFAULT_DESIGN['toplevel']['geometry'],
+    #                           border=5, relief=RAISED)
+    propertySheet   = PropertySheet(mainView, "Environment Variables", (info, nameIndex), design=design, listener=messageReceiver )
+    propertySheet.pack(expand=True, fill=BOTH)
+    mainView.mainloop()
 
