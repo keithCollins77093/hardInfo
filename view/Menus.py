@@ -99,15 +99,8 @@ class MenuContent:
         :return:            message string reporting results of operation
         """
 
-        self.logger.addMessage(self.messageSource, 'Adding a Menu Item at: ' + str(menuPath))
         for itemName in menuPath:
             print(itemName)
-        if self.pathExists(menuPath):
-            self.logger.addMessage(self.messageSource, 'item path exists:\t' + str(menuPath))
-        else:
-            self.logger.addMessage(self.messageSource, 'adding item path:\t' + str(menuPath))
-
-        self.logger.listMessages(self.messageSource, 'Debug Messages')
 
     def constructMenu(self):
         pass

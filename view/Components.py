@@ -95,11 +95,14 @@
 import sys
 from collections import OrderedDict
 from copy import deepcopy
+from enum import Enum
+
 from tkinter import Tk, Toplevel, Label, Frame, LabelFrame, Button, Checkbutton, Menubutton, Listbox, Entry, \
     Scale, Menu, IntVar, StringVar, BooleanVar, DoubleVar, \
-    messagebox, RAISED, SUNKEN, GROOVE, RIDGE, FLAT, W, E, CENTER, \
+    messagebox, RAISED, SUNKEN, GROOVE, RIDGE, FLAT, W, E, EW, N, CENTER, \
     HORIZONTAL, VERTICAL, END, LEFT, RIGHT, Y, BOTH, \
-    SINGLE, EXTENDED, YES, ttk
+    SINGLE, EXTENDED, YES, \
+    ttk
 
 
 PROGRAM_TITLE = "Components Designer Demo"
@@ -599,7 +602,7 @@ class ToolBarDefinition:
                 'pady': self.defaultConfig['pady'],
                 'border': self.defaultConfig['border'],
                 'relief': self.defaultConfig['relief'],
-                'variable': self.checkButtonIntvar
+                #   'variable': self.checkButtonIntvar
             }
         }
         self.togglebutton   = {
@@ -680,7 +683,7 @@ class ToolBarDefinition:
                 'relief': self.defaultConfig['relief'],
                 'orient': HORIZONTAL,
                 'command': scaleMoved,
-                'variable': self.scaleVariable,
+                #   'variable': self.scaleVariable,
                 'from_': 32.00,
                 'to': 212.00,
                 'resolution': 0.1,
@@ -1011,14 +1014,13 @@ def messageListner(message: dict):
 
 if __name__ == '__main__':
     window  = Tk()
-    window.geometry('800x400+50+50')
+    window.geometry('900x600+50+50')
     window.title(PROGRAM_TITLE)
     window.protocol('WM_DELETE_WINDOW', lambda: ExitProgram())
 
     checkButtonIntvar   = IntVar()
     scaleVariable       = DoubleVar()
 
-    """
     toggleButton = ToggleButton(window, onText='Switched ON', offText='Switched OFF')
 
     #   toggleButton.pack(ipadx=3, ipady=3)
@@ -1039,6 +1041,7 @@ if __name__ == '__main__':
     #   validator=None, buttons: dict = None, length: int = DEFAULT_LENGTH,
     #                    history: tuple = None, fuzzyType: str = None, **keyWordArguments
 
+    """
     def validator(textVar: str, event):
         print("validator:\t" + textVar.get())
         if textVar.get() == "error":
@@ -1077,7 +1080,7 @@ if __name__ == '__main__':
     stringEntryPane.pack(ipadx=3, ipady=3, padx=5, pady=10)
     """
 
-    """
+
     includeYear     = BooleanVar()
     includeMonth    = BooleanVar()
     includeDay      = BooleanVar()
@@ -1118,7 +1121,15 @@ if __name__ == '__main__':
 
     }
 
-    from view.SearchComponents import DateTimeField
+
+    class DateTimeField(Enum):
+        YEAR = 'Year'
+        MONTH = 'Month'
+        DAY = 'Day'
+        HOUR = "Hour"
+        MINUTE = 'Minute'
+        SECOND = 'Second'
+
 
     checkListDefinitions = OrderedDict( {
         'checkBoxes': {
@@ -1208,12 +1219,6 @@ if __name__ == '__main__':
                                   command=lambda: launchPopupChecklist(checkListDefinitions))
     buttonPopupChecklist.pack(ipadx=3, ipady=3, padx=5, pady=15)
 
-    popupPanel  = PopupPanel(window, "Test of PopupPanel", border=5, relief=RAISED)
-    popupPanel.show()
-        #   container, title: str, geometryDef: dict = None, **keyWordArguments
-
-    """
-
     listItems = OrderedDict()
     listItems['One']        = {
         'fieldOne': 'valueOne',
@@ -1267,6 +1272,9 @@ if __name__ == '__main__':
 
     listAndDetails  = ListAndDetails(window, listItems, viewConfig, text='Counting', border=3, relief=RAISED)
     listAndDetails.pack(expand=True, fill=BOTH)
+
+    popupPanel  = PopupPanel(window, "Test of PopupPanel", border=5, relief=RAISED)
+    popupPanel.show()
 
     window.mainloop()
 

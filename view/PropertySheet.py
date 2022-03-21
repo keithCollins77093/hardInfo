@@ -156,9 +156,8 @@ class PropertySheet(LabelFrame):
         self.name = name
         self.properties = deepcopy(properties)
         self.listener = listener
-        if design is None:
-            self.design = PropertySheet.DEFAULT_DESIGN
-        else:
+        self.design = deepcopy(PropertySheet.DEFAULT_DESIGN)
+        if design is not None:
             self.cascadeDesign(design)
 
         for name, value in keyWordArguments.items():
@@ -304,7 +303,18 @@ class PropertySheet(LabelFrame):
                 if 'title' in design['toplevel']:
                     if isinstance(design['toplevel']['title'], str):
                         self.design['toplevel']['title'] = design['toplevel']['title']
-
+        if 'frame' in design:
+            if isinstance(design['frame'], dict):
+                if 'text' in design['frame'] and isinstance(design['frame']['text'], str):
+                    self.design['frame']['text'] = design['frame']['text']
+                if 'border' in design['frame'] and isinstance(design['frame']['border'], int):
+                    self.design['frame']['border'] = design['frame']['border']
+                if 'relief' in design['frame'] and isinstance(design['frame']['relief'], str):
+                    self.design['frame']['relief'] = design['frame']['relief']
+                if 'padx' in design['frame'] and isinstance(design['frame']['padx'], int):
+                    self.design['frame']['padx'] = design['frame']['padx']
+                if 'pady' in design['frame'] and isinstance(design['frame']['pady'], int):
+                    self.design['frame']['pady'] = design['frame']['pady']
         if 'components' in design:
             if isinstance(design['components'], dict):
                 if 'name' in design['components']:
@@ -530,7 +540,7 @@ def ExitProgram():
 
 if __name__ == '__main__':
     mainView = Tk()
-    mainView.geometry("500x400+100+50")
+    mainView.geometry("700x500+100+50")
     mainView.title(PROGRAM_TITLE)
     mainView.layout = "grid"
     mainView.protocol('WM_DELETE_WINDOW', lambda: ExitProgram())
@@ -566,6 +576,9 @@ if __name__ == '__main__':
                     'config': { 'borderwidth': 5,'relief': 'raised'},
                     'geometry': { 'width': 750, 'height': 500, 'x': 600, 'y': 50 }
                 },
+                'frame': {'text': 'Environment Variables', 'border': 3, 'relief': SUNKEN,
+                          'padx': 10, 'pady': 10
+                },
                 'components': {
                     'input': {
                         'fieldName': { 'type': 'input component type',
@@ -594,11 +607,12 @@ if __name__ == '__main__':
             if message['source'] == "PropertySheet.mouseDoubleClicked":
                 pass
 
-    popupPanel = PopupPanel(mainView, "Popup Panel",
-                            geometryDef=PropertySheet.DEFAULT_DESIGN['toplevel']['geometry'],
-                            border=5, relief=RAISED)
-    propertySheet   = PropertySheet(popupPanel, "Properties", (info, nameIndex), listener=messageReceiver )
-    popupPanel.setContent(propertySheet, **{'row': 0, "column": 0, 'padx': 5, 'pady': 5})
+    #   popupPanel = PopupPanel(mainView, "Popup Panel",
+    #                           geometryDef=PropertySheet.DEFAULT_DESIGN['toplevel']['geometry'],
+    #                           border=5, relief=RAISED)
+    propertySheet   = PropertySheet(mainView, "Environment Variables", (info, nameIndex), design=design, listener=messageReceiver )
+    propertySheet.pack(expand=True, fill=BOTH)
+    #   popupPanel.setContent(propertySheet, **{'row': 0, "column": 0, 'padx': 5, 'pady': 5})
     #   Horizontal scroll appears to work better with pack():
     #   propertySheet.pack(expand=True, fill=BOTH)
 
@@ -608,7 +622,8 @@ if __name__ == '__main__':
     #       state[0][key] = None
     #   propertySheet.setModel(state)
 
-    popupPanel.show()
+    #   popupPanel.show()
+    mainView.mainloop()
 
     """
     platformInfo = PropertySheetTopLevel(None, "platformInfo", (info, nameIndex), design)
