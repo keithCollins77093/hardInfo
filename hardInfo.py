@@ -66,18 +66,51 @@
 #                   argument, like lscpu.
 #           10. see hardInfo.py header Development entry 2022-03-19 for more items.
 #
+#       2022-03-21: Command line features and arguments:
+#           Generate:   Used to run the Linux command that generates the output that is input to this
+#                           API builder and tool set.
+#                       The result can be immediately saved to a file or to a database, or the user can
+#                           run the API, CLI and GUI with the information in RAM only.
+#                       Arguments:
+#                           The data set identifier, which is the name of the linux command, preceded by a dash
+#                               This is a flag which is either present or not.
+#                               Absence means that the user wants all possible internal API object generation done.
+#                               The user can also specify the particular ones to run in any order.
+#           (See the Developer Documentation for a complete specification.)
+#
+
 import os, platform
+import subprocess
+from sys import stderr, stdout, stdin
 from collections import OrderedDict
 import json
+from copy import deepcopy
+from enum import Enum
+from subprocess import Popen, PIPE
+from datetime import datetime
 
 from tkinter import Tk, messagebox
 
 from model.Tools import Tool, LinuxCommand, ToolSet
-from service.StackInfo import showEnvironmentInfo, UNAME, LSHW
+#   from service.StackInfo import showEnvironmentInfo, UNAME, LSHW
 from model.Lshw import Computer, Configuration, Capabilities, Children, HardwareId, System
 
 
 PROGRAM_TITLE = "hardInfo Command Line Interface"
+
+
+class Action(Enum):
+    Generate    = 'Generate'
+    Help        = "Help"
+    Load        = 'Load'
+    Store       = 'Store'
+    Search      = 'Search'
+    Update      = 'Update'
+    Log         = 'Log'
+    Exit        = 'Exit'
+
+    def __str__(self):
+        return self.value
 
 
 def ExitProgram():
@@ -111,13 +144,164 @@ def jsonText_to_map_parser( output: str ):
     return {}
 
 
+class Help:
+
+    commandList = ("help", "load", "store", "search", "update", "log", "exit")
+    helpText = "\tFeatures:\t"
+    helpMap = OrderedDict()
+    for command in commandList:
+        helpText += "\t" + command
+
+
+class Dispatcher:
+    """
+    Coordinates invocation of the methods needed to respond to user commands.
+    Arguments have three forms, and for the user's sake will always have only these three forms:
+        1.  sub-command,
+        2.  flag, i.e. a letter or word preceded by a dash, '-',
+                which activates a particular feature or option, and
+        3.  a flag plus an argument;
+     If an argument is more than one word it will be quoted.
+     Any command can have as many arguments as are required to unambiguously specify the program
+        behavior desired.
+    """
+
+    CurrentAction = None
+
+    def __init__(self):
+        print("Lshw.Dispatcher does not instantiate")
+
+    @staticmethod
+    def do(action: Action, *args):
+        Dispatcher.CurrentAction = action
+        if action == Action.Generate:
+            return Dispatcher.__generate(args)
+        if action == Action.Help:
+            return Dispatcher.__help(args)
+        if action == Action.Load:
+            return Dispatcher.__load(args)
+        if action == Action.Store:
+            return Dispatcher.__store(args)
+        if action == Action.Search:
+            return Dispatcher.__search(args)
+        if action == Action.Update:
+            return Dispatcher.__update(args)
+        if action == Action.Log:
+            return Dispatcher.__log(args)
+        if action == Action.Exit:
+            return Dispatcher.__exit(args)
+
+    @staticmethod
+    def __generate(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __help(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        print(Help.helpText)
+
+    @staticmethod
+    def __load(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __store(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __search(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __update(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __log(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        return None
+
+    @staticmethod
+    def __exit(*args):
+        print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
+        print("Exiting hardInfo", file=stderr)
+        exit(0)
+
+
+class Conversation:
+
+    userLog = OrderedDict()
+
+    class LogEntry:
+        def __init__(self, timeStamp: datetime, description: str, attributes: dict ):
+            if not isinstance(timeStamp, datetime):
+                raise Exception("Conversation.LogEntry constructor - Invalid timeStamp argument:  " + str(timeStamp))
+            if not isinstance(description, str):
+                raise Exception("Conversation.LogEntry constructor - Invalid description argument:  " + str(description))
+            if not isinstance(attributes, dict):
+                raise Exception("Conversation.LogEntry constructor - Invalid attributes argument:  " + str(attributes))
+            self.timeStamp = deepcopy(timeStamp)
+            self.description = description
+            self.attributes = deepcopy(attributes)
+
+        def storeLog(self):
+            pass
+
+    def __init__(self):
+        print("Lshw.Conversation does not instantiate")
+
+    @staticmethod
+    def getAndProcessInput(*args):
+        print("Hardware Inventory Command Line running:")
+        prompt = ""
+        for arg in args:
+            prompt += arg + '\t'
+        print(prompt)
+        prompt = 'hardInfo $'
+        while True:
+            print(prompt, end=":\t")
+            command = tuple(input().split())
+            if len(command) > 1:
+                args = tuple(command[1:])
+            else:
+                args = ()
+            print(command)
+            if command[0] == 'exit':
+                Dispatcher.do(Action.Exit, args)
+            if command[0] == 'help':
+                Dispatcher.do(Action.Help, args)
+            if command[0] == 'load':
+                Dispatcher.do(Action.Load, args)
+            if command[0] == 'store':
+                Dispatcher.do(Action.Store, args)
+            if command[0] == 'search':
+                Dispatcher.do(Action.Search, args)
+            if command[0] == 'update':
+                Dispatcher.do(Action.Update, args)
+            if command[0] == 'log':
+                Dispatcher.do(Action.Log, args)
+
+
 if __name__ == '__main__':
     mainView = Tk()
     mainView.protocol('WM_DELETE_WINDOW', ExitProgram)
     mainView.geometry("600x400+100+50")
     mainView.title(PROGRAM_TITLE)
 
-    #   TESTS:
+    args = []
+    for command in Help.commandList:
+        args.append(command)
+
+    Conversation.getAndProcessInput("\tFeatures:\t", *args)
+
+
+#   **********************************************************************************************************
+#   TEST CODE RUN IN __main__ DURING DEVELOPMENT OF THIS MODULE:
     """
     lsLongTool = Tool(LinuxCommand.LS, ('-l',), lines_2_rows_parser)
     output = lsLongTool.run()
@@ -176,6 +360,7 @@ if __name__ == '__main__':
     print("uname command run finished")
     """
 
+    """
     print("HardwareId.strMap['battery'].value:\t" + str(System.idMap['battery']))
 
     #   lshw -json
@@ -217,3 +402,15 @@ if __name__ == '__main__':
 
     print("\nplatform library module:   platform.platform():")
     print(str(platform.platform()))
+    """
+
+    """
+    shellScriptCommand = '/home/keith/PycharmProjects/hardInfo/lshw_to_json_file.sh'
+    print('RUNNING IN TERMINAL shellScriptCommand:\t' + shellScriptCommand)
+    #   Runs: sudo lshw --json > lshw.json
+    argv = ['gnome-terminal', '--', shellScriptCommand]
+    sub = Popen(argv, stdout=PIPE, stderr=STDOUT)
+    lastCommandRunTime = str(datetime.now())
+    output, error_message = sub.communicate()
+    print('output:\t' + output.decode('utf-8'))
+    """
