@@ -7,7 +7,7 @@
 #   Purpose:        Run Linux commands and collect output into usable Python objects.
 #   Development:
 #       Sample / Test data file:
-#           Name:       sampleOutput/lscpu/lscpu.output.2022_03_20.txt
+#           Name:       consoleOutput/lscpu/lscpu.output.2022_03_20.txt
 #           Tool used:  scpu -a --json --extended > lscpu.output.2022_03_20.txt
 #
 from os.path import isfile

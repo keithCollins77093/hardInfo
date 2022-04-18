@@ -12,4 +12,6 @@
 #                               of the source tree.
 #
 
+DATA_FOLDER  = "/home/keithcollins/PycharmProjects/CommonData/"
 INSTALLATION_FOLDER = '/home/keithcollins/PycharmProjects/hardInfo/'
+LSHW_JSON_FILE = 'lshw.json'

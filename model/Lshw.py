@@ -81,10 +81,11 @@ from copy import deepcopy           #   Security: prevent passed in argument fro
 from enum import Enum
 from json import loads
 
-from tkinter import Tk, messagebox, BOTH
+from tkinter import Tk, LabelFrame, messagebox, BOTH, RAISED, SUNKEN, FLAT, GROOVE, RIDGE
 
-from model.Installation import INSTALLATION_FOLDER
+from model.Installation import INSTALLATION_FOLDER, LSHW_JSON_FILE
 from view.Components import JsonTreeView
+from service.DataSource import Hardware
 
 
 PROGRAM_TITLE = "lshw classes module"
@@ -1724,27 +1725,6 @@ class Battery( System ):
             print("\t" + key + ":\t" + str(value))
 
 
-class Dispatcher:
-
-    def __init__(self):
-        print("Lshw.Dispatcher does not instantiate")
-
-    @staticmethod
-    def generateJshwJsonFile():
-        print("Enter your password to run lshw as super user", end=":\t")
-        interface = input()
-        argument = "{input}\n"
-        bytestr = bytes(argument.format(input=interface).encode('utf-8'))
-        proc = Popen(['sudo', '-S', 'lshw', '-json'], stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate(input=bytestr)
-        jsonText = proc[0].decode('utf-8')
-        print("Saving output to:\t" + LSHW_JSON_FILE)
-        file = open(LSHW_JSON_FILE, "w")
-        file.write(jsonText)
-        file.close()
-        #   print("Line Count:\t" + str(len(outputText.split('\n'))))
-        return jsonText
-
-
 def ExitProgram():
     answer = messagebox.askyesno('Exit program ', "Exit the " + PROGRAM_TITLE + " program?")
     if answer:
@@ -1757,7 +1737,6 @@ if __name__ == '__main__':
     mainView.geometry("800x500+100+50")
     mainView.title(PROGRAM_TITLE)
 
-    LSHW_JSON_FILE = 'lshw.json'
     jsonText = None
 
     if isfile(LSHW_JSON_FILE):
@@ -1765,18 +1744,18 @@ if __name__ == '__main__':
         print(prompt, end=":\t")
         response = input()
         if response in ('y','Y'):
-            jsonText = Dispatcher.generateJshwJsonFile()
+            jsonText = Hardware.generateLshwJsonFile()
         else:
             lshwJsonFile = open(LSHW_JSON_FILE, "r")
             jsonText = lshwJsonFile.read()
             lshwJsonFile.close()
     else:
-        jsonText = Dispatcher.generateJshwJsonFile()
+        jsonText = Hardware.generateLshwJsonFile()
 
     if jsonText is not None:
-
         #   Construct the internal objects storing the output for API use.
         propertyMap = loads(jsonText)
+
         configuration = {}
         if 'configuration' in propertyMap:
             for name, value in propertyMap['configuration'].items():
@@ -1794,12 +1773,14 @@ if __name__ == '__main__':
                             Children(children))
         print("lshw API is available as \"computer\"")
 
-        prompt = "Would you line to see the lshw output in a GUI Tree window? (y/Y or n/N)"
+        prompt = "Would you like to see the lshw output in a GUI Tree window? (y/Y or n/N)"
         print(prompt, end=":\t")
         response = input()
         if response in ('y', 'Y'):
             print('Generating view')
             lshwJson = loads(jsonText)
-            jsonTreeView    = JsonTreeView( mainView, lshwJson, {"openBranches": True, "mode": "strict"})
+            borderFrame = LabelFrame( mainView, text="Computer Hardware", border=5, relief=RAISED)
+            jsonTreeView    = JsonTreeView( borderFrame, lshwJson, {"openBranches": True, "mode": "strict"})
             jsonTreeView.pack(expand=True, fill=BOTH)
+            borderFrame.pack(expand=True, fill=BOTH)
             mainView.mainloop()
