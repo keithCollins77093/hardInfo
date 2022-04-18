@@ -41,17 +41,43 @@
 #               a.  uname
 #               b.  lshw
 #               c.  lscpu
-#               d.  lsblk
-#               e.  lsusb
-#               f.  lspci
-#               g.  lsscsi
-#               h.  hdparm
-#               i.  fdisk
-#               j.  dmidecode
-#               k.  free
-#               l.  df, pydf
-#               m.  dmesg
-#               n.  biosdecode
+#               d.  lsblk       (to make sure output is current, run first: udevadm settle)
+#               e.  lsusb       lsusb --verbose > output.txt
+#                               --json is not available
+#                               for complete output, run under sudo
+#                                   may show more information if run with root privileges.
+#               f.  lspci       sudo lspci -vv > output.txt, or
+#                               sudo lspci -tv > output.txt
+#                               --json is not available
+#                               for complete output, run under sudo
+#                                   may show more information if run with root privileges.
+#               g.  lsscsi      sudo lsscsi --long --verbose -d -l -s > output.txt
+#                               compare to:   cat /proc/scsi/scsi
+#                               may need to install:    sudo apt-get install lsscsi, or
+#                                                       yum install lsscsi
+#                               for complete output, run under sudo
+#                                   may show more information if run with root privileges.
+#               h.  fdisk       sudo fdisk -l > output.txt
+#                               Must run as sudo.
+#                               Run before hdparm to get a list of devices that heparm can be run on.
+#               i.  hdparm      sudo hdparm /dev/sda [or /dev/sda1, 2, 3, ...] > output.txt
+#                                   Including the partition number provides the starting sector of the partition,
+#                                       for instance.
+#                                   Different output and more details:
+#                                       sudo hdparm -I /dev/sda1, 2, 3, ... > output.txt
+#                               must run as sudo.
+#                               Does not work on /dev/loop devices.
+#               j.  dmidecode   see model/DMIdecode.py
+#               k.  free        free --wide --total, or
+#                               cat /proc/meminfo
+#               l.  df, pydf    df --all --portability, and
+#                               df --all --inodes  --portability
+#                               #               m.  dmesg
+#               n.  biosdecode  sudo biosdecode
+#                                   Running as sudo is required.  Permission is denied otherwise.
+#                                   See man page for known BIOS entry points.  Include in template.
+#
+#           Optional:
 #               o.  dig, host, ip, nmap, ping
 #
 #           2.  API documentation for initial lshw implementation.
@@ -78,6 +104,12 @@
 #                               The user can also specify the particular ones to run in any order.
 #           (See the Developer Documentation for a complete specification.)
 #
+#       2022-03-24:
+#           NOTE:   Simpler output parsing is possible for those commands without --json options with other
+#                   command line options that return more focused output.
+#                   The more focused reports can be used also to identify information in the more verbose ones.
+#
+#
 
 import os, platform
 import subprocess
@@ -94,7 +126,7 @@ from tkinter import Tk, messagebox
 from model.Tools import Tool, LinuxCommand, ToolSet
 #   from service.StackInfo import showEnvironmentInfo, UNAME, LSHW
 from model.Lshw import Computer, Configuration, Capabilities, Children, HardwareId, System
-
+from service.DataSource import Hardware
 
 PROGRAM_TITLE = "hardInfo Command Line Interface"
 
@@ -146,7 +178,7 @@ def jsonText_to_map_parser( output: str ):
 
 class Help:
 
-    commandList = ("help", "load", "store", "search", "update", "log", "exit")
+    commandList =     ('generate', 'help', 'load', 'store', 'search', 'update', 'log', 'exit')
     helpText = "\tFeatures:\t"
     helpMap = OrderedDict()
     for command in commandList:
@@ -194,7 +226,8 @@ class Dispatcher:
     @staticmethod
     def __generate(*args):
         print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
-        return None
+        computer = Hardware.getLshw(Dispatcher.messageReceiver, mainView)
+        return computer
 
     @staticmethod
     def __help(*args):
@@ -231,6 +264,19 @@ class Dispatcher:
         print("Dispatcher:\t" + str(Dispatcher.CurrentAction))
         print("Exiting hardInfo", file=stderr)
         exit(0)
+
+    def messageReceiver(message: dict):
+        print("Dispatcher.messageReceiver:\t" + str(message))
+        #   {'source': 'Hardware.getLshw',  'jsonDB': lshwJson,     'configuration': configuration,
+        #               'capabilities': capabilities,               'children': children}
+        if 'source' in message:
+            if message['source'] == 'Hardware.getLshw':
+                if 'jsonDB' in message and isinstance(message['jsonDB'], dict):
+                    if 'configuration' in message and isinstance(message['configuration'], dict):
+                        if 'capabilities' in message and isinstance(message['capabilities'], dict):
+                            if 'children' in message and isinstance(message['children'], dict):
+                                return  Computer(message['jsonDB'], Configuration(message['configuration']),
+                                                 Capabilities(message['capabilities']), Children(message['children']))
 
 
 class Conversation:
@@ -271,6 +317,8 @@ class Conversation:
             else:
                 args = ()
             print(command)
+            if command[0] == 'generate':
+                Dispatcher.do(Action.Generate, args)
             if command[0] == 'exit':
                 Dispatcher.do(Action.Exit, args)
             if command[0] == 'help':
