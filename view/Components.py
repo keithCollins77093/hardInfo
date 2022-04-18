@@ -336,7 +336,7 @@ class JsonTreeView(ttk.Treeview):
                 raise Exception("JsonTreeView constructor - invalid columnWidth argument:   " + str(jsonTreeviewConfig['columnWidths']))
 
         self.style = ttk.Style()
-        self.style.configure("Treeview", font=('Calibri', 11))
+        self.style.configure("Treeview", font=('Calibri', 12), borderwidth=3)
 
         #   ttk.Treeview.__init__(self, container, style="app.jsonTreeStyle", selectmode=EXTENDED, height=15)
         ttk.Treeview.__init__(self, container, selectmode=EXTENDED, height=15)
